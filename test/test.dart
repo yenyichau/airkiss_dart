@@ -1,6 +1,6 @@
 // github: https://github.com/sintrb/dart-airkiss
 
-import 'package:airkiss/airkiss.dart';
+import 'package:airkiss_dart/airkiss_dart.dart';
 
 void test(String ssid, String pwd) async {
   print('config ssid:$ssid, pwd:$pwd');
@@ -10,12 +10,7 @@ void test(String ssid, String pwd) async {
   option.reuse_address = false;
   AirkissConfig ac = AirkissConfig(option: option);
   var res = await ac.config(ssid, pwd);
-  if (res != null) {
-    print('result: $res');
-  } else {
-    print(
-        'config failed!!! please ensure phone/pc connected to Wi—Fi[$ssid] with 2.4GHz Channel(NOT 5GHz Channel)');
-  }
+  print('result: $res');
 }
 
 void main() {

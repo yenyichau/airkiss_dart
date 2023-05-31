@@ -1,6 +1,6 @@
 // github: https://github.com/sintrb/dart-airkiss
 
-library airkiss;
+library airkiss_dart;
 
 import 'dart:io' show RawDatagramSocket, InternetAddress, Datagram;
 import 'dart:async';
@@ -93,7 +93,7 @@ class AirkissUtils {
 }
 
 class AirkissEncoder {
-  List<List<int>> encode(String ssid, String pwd, {int random: 0x56}) {
+  List<List<int>> encode(String ssid, String pwd, {int random = 0x56}) {
     var strEncoder = Utf8Encoder();
     List<int> ssidbts = strEncoder.convert(ssid);
     List<int> pwdbts = strEncoder.convert(pwd);
@@ -101,7 +101,7 @@ class AirkissEncoder {
   }
 
   List<List<int>> encodeWithBytes(List<int> ssidbts, List<int> pwdbts,
-      {int random: 0x56}) {
+      {int random = 0x56}) {
     List<int> bytes = [];
     bytes.addAll(AirkissUtils.leadingPart());
     bytes.addAll(AirkissUtils.magicCode(ssidbts, pwdbts));
@@ -129,7 +129,7 @@ class AirkissEncoder {
 }
 
 class AirkissResult {
-  InternetAddress deviceAddress; // 设备地址
+  late InternetAddress deviceAddress; // 设备地址
 
   String toString() {
     return 'deviceAddress:$deviceAddress';
@@ -138,11 +138,11 @@ class AirkissResult {
 
 class AirkissSender {
   var cbk;
-  RawDatagramSocket _soc;
+  late RawDatagramSocket _soc;
   AirkissOption option;
 
   AirkissSender(this.option) {
-    assert(option != null);
+
   }
 
   void onFinished(cbk) {
@@ -156,7 +156,7 @@ class AirkissSender {
         .then((soc) {
       this._soc = soc;
       soc.listen((e) {
-        Datagram dg = soc.receive();
+        Datagram? dg = soc.receive();
         if (dg != null) {
           List<int> rbytes = dg.data.toList();
           if (rbytes.length > 0 && rbytes[0] == option.random) {
@@ -174,7 +174,6 @@ class AirkissSender {
       InternetAddress bcAddr = InternetAddress('255.255.255.255');
       int ix = 0;
       _send() {
-        if (this._soc != null) {
           var data = bytesArray[ix % bytesArray.length];
           int sended = soc.send(data, bcAddr, option.send_port);
           if (sended != data.length) {
@@ -192,7 +191,6 @@ class AirkissSender {
             cbk(null);
             stop();
           }
-        }
       }
 
       _send();
@@ -200,20 +198,15 @@ class AirkissSender {
   }
 
   void stop() {
-    if (this._soc != null) {
-      this._soc.close();
-      this._soc = null;
-    }
+    this._soc.close();
   }
 }
 
 class AirkissConfig {
   AirkissOption option;
 
-  AirkissConfig({this.option}) {
-    if (this.option == null) {
-      this.option = AirkissOption();
-    }
+  AirkissConfig({required this.option}) {
+    this.option = AirkissOption();
   }
 
   Future<AirkissResult> config(String ssid, String pwd) async {
