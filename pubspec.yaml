@@ -5,4 +5,3 @@ homepage: https://github.com/OpenIoTHub/airkiss_dart
 documentation: https://github.com/OpenIoTHub/airkiss_dart
 environment:
   sdk: ^3.0.0
-publish_to: https://pub.dartlang.org
