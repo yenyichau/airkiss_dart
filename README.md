@@ -15,10 +15,10 @@ dependencies:
 ### Example
 
 ``` dart
-import 'package:airkiss/airkiss_dart.dart';
+import 'package:airkiss_dart/airkiss_dart.dart';
 
 
-import 'package:airkiss/airkiss_dart.dart';
+import 'package:airkiss_dart/airkiss_dart.dart';
 
 void test(String ssid, String pwd) async {
   print('config ssid:$ssid, pwd:$pwd');
