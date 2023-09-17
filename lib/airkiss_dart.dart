@@ -129,7 +129,7 @@ class AirkissEncoder {
 }
 
 class AirkissResult {
-  late InternetAddress deviceAddress; // 设备地址
+  InternetAddress? deviceAddress; // 设备地址
 
   String toString() {
     return 'deviceAddress:$deviceAddress';
