@@ -12,9 +12,8 @@ on:
     # If your repository contains multiple packages consider a pattern like:
     # - 'my_package_name-v[0-9]+.[0-9]+.[0-9]+*'
 
-# Publish using the reusable workflow from dart-lang.
-jobs:
-  publish:
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
-    # with:
-    #   working-directory: path/to/package/within/repository
+ jobs:
+   publish:
+     uses: dart-lang/setup-dart/.github/workflows/publish.yml@main
+     # with:
+     #   working-directory: path/to/sub/directory
