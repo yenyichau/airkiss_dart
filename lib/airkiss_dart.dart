@@ -140,10 +140,9 @@ class AirkissSender {
   var cbk;
   late RawDatagramSocket _soc;
   AirkissOption option;
+  bool _isCompleted = false; // Flag to prevent multiple completions
 
-  AirkissSender(this.option) {
-
-  }
+  AirkissSender(this.option);
 
   void onFinished(cbk) {
     this.cbk = cbk;
@@ -151,46 +150,55 @@ class AirkissSender {
 
   void send(List<List<int>> bytesArray) async {
     assert(cbk != null);
-    RawDatagramSocket.bind(InternetAddress.anyIPv4, option.receive_port,
-            reuseAddress: option.reuse_address, reusePort: Platform.isAndroid ? false : option.reuse_port)
+    RawDatagramSocket.bind(
+            InternetAddress.anyIPv4, option.receive_port,
+            reuseAddress: option.reuse_address, 
+            reusePort: Platform.isAndroid ? false : option.reuse_port)
         .then((soc) {
       this._soc = soc;
       soc.listen((e) {
         Datagram? dg = soc.receive();
         if (dg != null) {
           List<int> rbytes = dg.data.toList();
-          if (rbytes.length > 0 && rbytes[0] == option.random) {
-            // 设备上线，配置完毕
-            AirkissResult ret = AirkissResult();
-            ret.deviceAddress = dg.address;
-            cbk(ret);
-            stop();
+          if (rbytes.isNotEmpty && rbytes[0] == option.random) {
+            if (!_isCompleted) {
+              _isCompleted = true; // Prevent multiple calls
+              AirkissResult ret = AirkissResult();
+              ret.deviceAddress = dg.address;
+              cbk(ret);
+              stop();
+            }
           }
         }
       });
+
       soc.broadcastEnabled = true;
       int count = option.trycount;
       bool success = false;
       InternetAddress bcAddr = InternetAddress('255.255.255.255');
       int ix = 0;
-      _send() {
-          var data = bytesArray[ix % bytesArray.length];
-          int sended = soc.send(data, bcAddr, option.send_port);
-          if (sended != data.length) {
-            print("send fail!");
-          }
-          ++ix;
-          if (ix % bytesArray.length == 0) {
-            --count;
-          }
-          if (count > 0) {
-            Future.delayed(Duration(microseconds: option.timegap)).then((v) {
-              _send();
-            });
-          } else if (!success) {
-            cbk(null);
-            stop();
-          }
+
+      void _send() {
+        if (_isCompleted) return; // Stop sending if already completed
+
+        var data = bytesArray[ix % bytesArray.length];
+        int sended = soc.send(data, bcAddr, option.send_port);
+        if (sended != data.length) {
+          print("send fail!");
+        }
+        ++ix;
+        if (ix % bytesArray.length == 0) {
+          --count;
+        }
+        if (count > 0) {
+          Future.delayed(Duration(milliseconds: option.timegap)).then((_) {
+            _send();
+          });
+        } else if (!_isCompleted) {
+          _isCompleted = true;
+          cbk(null);
+          stop();
+        }
       }
 
       _send();
