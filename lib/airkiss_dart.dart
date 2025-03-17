@@ -138,8 +138,9 @@ class AirkissResult {
 
 class AirkissSender {
   var cbk;
-  late RawDatagramSocket _soc;
+  RawDatagramSocket? _soc;
   AirkissOption option;
+  bool _isCancelled = false; // Cancellation flag
 
   AirkissSender(this.option);
 
@@ -178,8 +179,12 @@ class AirkissSender {
     RawDatagramSocket.bind(InternetAddress.anyIPv4, option.receive_port,
             reuseAddress: option.reuse_address, reusePort: option.reuse_port)
         .then((soc) {
-      this._soc = soc;
+      _soc = soc;
+      _isCancelled = false; // Reset cancellation flag
+
       soc.listen((e) {
+        if (_isCancelled) return;
+        
         Datagram? dg = soc.receive();
         if (dg != null) {
           List<int> rbytes = dg.data.toList();
@@ -199,6 +204,8 @@ class AirkissSender {
       int ix = 0;
 
       void _send() {
+        if (_isCancelled || count <= 0) return; // Stop if cancelled
+
         var data = bytesArray[ix % bytesArray.length];
         int sended = soc.send(data, bcAddr, option.send_port);
         if (sended != data.length) {
@@ -221,8 +228,15 @@ class AirkissSender {
     });
   }
 
+  /// Cancels the sending process
+  void cancel() {
+    _isCancelled = true;
+    stop();
+  }
+
   void stop() {
-    this._soc.close();
+    _soc?.close();
+    _soc = null;
   }
 }
 
