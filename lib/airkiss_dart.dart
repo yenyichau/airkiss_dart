@@ -2,7 +2,13 @@
 
 library airkiss_dart;
 
-import 'dart:io' show RawDatagramSocket, InternetAddress, Datagram, NetworkInterface, InternetAddressType;
+import 'dart:io'
+    show
+        RawDatagramSocket,
+        InternetAddress,
+        Datagram,
+        NetworkInterface,
+        InternetAddressType;
 import 'dart:async';
 import 'dart:convert';
 
@@ -14,6 +20,7 @@ class AirkissOption {
   int random = 0x55;
   bool reuse_address = true;
   bool reuse_port = false;
+  String ipAddress;
 }
 
 class AirkissUtils {
@@ -148,7 +155,7 @@ class AirkissSender {
     this.cbk = cbk;
   }
 
-Future<String?> _getBroadcastAddress() async {
+  Future<String?> _getBroadcastAddress() async {
     try {
       for (var interface in await NetworkInterface.list()) {
         for (var addr in interface.addresses) {
@@ -169,8 +176,9 @@ Future<String?> _getBroadcastAddress() async {
     assert(cbk != null);
 
     // String? broadcastIp = await _getBroadcastAddress();
-    String? broadcastIp = "192.168.5.255";
-    
+
+    String? broadcastIp = option.ipAddress;
+
     if (broadcastIp == null) {
       print("Failed to determine broadcast address.");
       return;
@@ -188,7 +196,7 @@ Future<String?> _getBroadcastAddress() async {
 
       soc.listen((e) {
         if (_isCancelled) return;
-        
+
         Datagram? dg = soc.receive();
         if (dg != null) {
           List<int> rbytes = dg.data.toList();
@@ -249,7 +257,7 @@ class AirkissConfig {
   AirkissSender? _sender; // Store sender instance
 
   AirkissConfig({required this.option}) {
-    this.option = AirkissOption();
+    this.option = option;
   }
 
   Future<AirkissResult?> config(String ssid, String pwd) async {
