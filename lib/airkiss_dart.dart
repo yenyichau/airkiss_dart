@@ -2,7 +2,7 @@
 
 library airkiss_dart;
 
-import 'dart:io' show RawDatagramSocket, InternetAddress, Datagram, Platform;
+import 'dart:io' show RawDatagramSocket, InternetAddress, Datagram;
 import 'dart:async';
 import 'dart:convert';
 
@@ -13,7 +13,7 @@ class AirkissOption {
   int timegap = 1000;
   int random = 0x55;
   bool reuse_address = true;
-  bool reuse_port = true;
+  bool reuse_port = false;
 }
 
 class AirkissUtils {
@@ -141,26 +141,50 @@ class AirkissSender {
   late RawDatagramSocket _soc;
   AirkissOption option;
 
-  AirkissSender(this.option) {
-
-  }
+  AirkissSender(this.option);
 
   void onFinished(cbk) {
     this.cbk = cbk;
   }
 
+  Future<String?> _getBroadcastAddress() async {
+    try {
+      for (var interface in await NetworkInterface.list()) {
+        for (var addr in interface.addresses) {
+          if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
+            List<String> parts = addr.address.split('.');
+            parts[3] = '255'; // Replace the last octet with 255
+            return parts.join('.');
+          }
+        }
+      }
+    } catch (e) {
+      print("Error getting broadcast address: $e");
+    }
+    return null;
+  }
+
   void send(List<List<int>> bytesArray) async {
     assert(cbk != null);
+
+    String? broadcastIp = await _getBroadcastAddress();
+    if (broadcastIp == null) {
+      print("Failed to determine broadcast address.");
+      return;
+    }
+
+    InternetAddress bcAddr = InternetAddress(broadcastIp);
+
     RawDatagramSocket.bind(InternetAddress.anyIPv4, option.receive_port,
-            reuseAddress: option.reuse_address, reusePort: Platform.isAndroid ? false : option.reuse_port)
+            reuseAddress: option.reuse_address, reusePort: option.reuse_port)
         .then((soc) {
       this._soc = soc;
       soc.listen((e) {
         Datagram? dg = soc.receive();
         if (dg != null) {
           List<int> rbytes = dg.data.toList();
-          if (rbytes.length > 0 && rbytes[0] == option.random) {
-            // 设备上线，配置完毕
+          if (rbytes.isNotEmpty && rbytes[0] == option.random) {
+            // Device is online, configuration complete
             AirkissResult ret = AirkissResult();
             ret.deviceAddress = dg.address;
             cbk(ret);
@@ -168,29 +192,29 @@ class AirkissSender {
           }
         }
       });
+
       soc.broadcastEnabled = true;
       int count = option.trycount;
       bool success = false;
-      InternetAddress bcAddr = InternetAddress('255.255.255.255');
       int ix = 0;
-      _send() {
-          var data = bytesArray[ix % bytesArray.length];
-          int sended = soc.send(data, bcAddr, option.send_port);
-          if (sended != data.length) {
-            print("send fail!");
-          }
-          ++ix;
-          if (ix % bytesArray.length == 0) {
-            --count;
-          }
-          if (count > 0) {
-            Future.delayed(Duration(microseconds: option.timegap)).then((v) {
-              _send();
-            });
-          } else if (!success) {
-            cbk(null);
-            stop();
-          }
+
+      void _send() {
+        var data = bytesArray[ix % bytesArray.length];
+        int sended = soc.send(data, bcAddr, option.send_port);
+        if (sended != data.length) {
+          print("Send fail!");
+        }
+        ++ix;
+        if (ix % bytesArray.length == 0) {
+          --count;
+        }
+        if (count > 0) {
+          Future.delayed(Duration(microseconds: option.timegap))
+              .then((_) => _send());
+        } else if (!success) {
+          cbk(null);
+          stop();
+        }
       }
 
       _send();
@@ -216,26 +240,26 @@ class AirkissConfig {
     return this.configWithBytes(ssidbts, pwdbts);
   }
 
-Future<AirkissResult?> configWithBytes(
-    List<int> ssidbts, List<int> pwdbts) async {
-  Completer<AirkissResult?> completer = Completer();
-  var bytes = AirkissEncoder()
-      .encodeWithBytes(ssidbts, pwdbts, random: option.random);
-  var sender = AirkissSender(this.option);
+  Future<AirkissResult?> configWithBytes(
+      List<int> ssidbts, List<int> pwdbts) async {
+    Completer<AirkissResult?> completer = Completer();
+    var bytes = AirkissEncoder()
+        .encodeWithBytes(ssidbts, pwdbts, random: option.random);
+    var sender = AirkissSender(this.option);
 
-  bool isCompleted = false; // Add this flag
+    bool isCompleted = false; // Add this flag
 
-  sender.onFinished((res) {
-    if (!isCompleted) { // Ensure completer is not completed twice
-      isCompleted = true;
-      sender.stop();
-      completer.complete(res);
-    }
-  });
+    sender.onFinished((res) {
+      if (!isCompleted) {
+        // Ensure completer is not completed twice
+        isCompleted = true;
+        sender.stop();
+        completer.complete(res);
+      }
+    });
 
-  sender.send(bytes);
+    sender.send(bytes);
 
-  return completer.future;
-}
-
+    return completer.future;
+  }
 }
