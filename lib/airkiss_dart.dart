@@ -2,7 +2,7 @@
 
 library airkiss_dart;
 
-import 'dart:io' show RawDatagramSocket, InternetAddress, Datagram;
+import 'dart:io' show RawDatagramSocket, InternetAddress, Datagram, NetworkInterface, InternetAddressType;
 import 'dart:async';
 import 'dart:convert';
 
