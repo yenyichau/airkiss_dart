@@ -152,7 +152,7 @@ class AirkissSender {
   void send(List<List<int>> bytesArray) async {
     assert(cbk != null);
     RawDatagramSocket.bind(InternetAddress.anyIPv4, option.receive_port,
-            reuseAddress: option.reuse_address, reusePort: option.reuse_port)
+            reuseAddress: option.reuse_address, reusePort: Platform.isAndroid ? false : option.reuse_port)
         .then((soc) {
       this._soc = soc;
       soc.listen((e) {
@@ -209,16 +209,16 @@ class AirkissConfig {
     this.option = AirkissOption();
   }
 
-  Future<AirkissResult> config(String ssid, String pwd) async {
+  Future<AirkissResult?> config(String ssid, String pwd) async {
     var strEncoder = Utf8Encoder();
     List<int> ssidbts = strEncoder.convert(ssid);
     List<int> pwdbts = strEncoder.convert(pwd);
     return this.configWithBytes(ssidbts, pwdbts);
   }
 
-  Future<AirkissResult> configWithBytes(
+  Future<AirkissResult?> configWithBytes(
       List<int> ssidbts, List<int> pwdbts) async {
-    Completer<AirkissResult> completer = Completer();
+    Completer<AirkissResult?> completer = Completer();
     var bytes = AirkissEncoder()
         .encodeWithBytes(ssidbts, pwdbts, random: option.random);
     var sender = AirkissSender(this.option);
