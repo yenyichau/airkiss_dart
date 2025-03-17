@@ -13,14 +13,25 @@ import 'dart:async';
 import 'dart:convert';
 
 class AirkissOption {
-  int send_port = 10001;
-  int receive_port = 10000;
-  int trycount = 50;
-  int timegap = 1000;
-  int random = 0x55;
-  bool reuse_address = true;
-  bool reuse_port = false;
+  int send_port;
+  int receive_port;
+  int trycount;
+  int timegap;
+  int random;
+  bool reuse_address;
+  bool reuse_port;
   String ipAddress;
+
+  AirkissOption({
+    this.send_port = 10001,
+    this.receive_port = 10000,
+    this.trycount = 50,
+    this.timegap = 1000,
+    this.random = 0x55,
+    this.reuse_address = true,
+    this.reuse_port = false,
+    required this.ipAddress, // Now required
+  });
 }
 
 class AirkissUtils {
