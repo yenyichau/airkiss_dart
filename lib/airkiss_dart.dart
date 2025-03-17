@@ -216,18 +216,26 @@ class AirkissConfig {
     return this.configWithBytes(ssidbts, pwdbts);
   }
 
-  Future<AirkissResult?> configWithBytes(
-      List<int> ssidbts, List<int> pwdbts) async {
-    Completer<AirkissResult?> completer = Completer();
-    var bytes = AirkissEncoder()
-        .encodeWithBytes(ssidbts, pwdbts, random: option.random);
-    var sender = AirkissSender(this.option);
-    sender
-      ..onFinished((res) {
-        sender.stop();
-        completer.complete(res);
-      })
-      ..send(bytes);
-    return completer.future;
-  }
+Future<AirkissResult?> configWithBytes(
+    List<int> ssidbts, List<int> pwdbts) async {
+  Completer<AirkissResult?> completer = Completer();
+  var bytes = AirkissEncoder()
+      .encodeWithBytes(ssidbts, pwdbts, random: option.random);
+  var sender = AirkissSender(this.option);
+
+  bool isCompleted = false; // Add this flag
+
+  sender.onFinished((res) {
+    if (!isCompleted) { // Ensure completer is not completed twice
+      isCompleted = true;
+      sender.stop();
+      completer.complete(res);
+    }
+  });
+
+  sender.send(bytes);
+
+  return completer.future;
+}
+
 }
