@@ -150,14 +150,14 @@ class AirkissSender {
 
   Future<String?> _getBroadcastAddress() async {
     try {
-      for (var interface in await NetworkInterface.list()) {
-        for (var addr in interface.addresses) {
-          if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
-            List<String> parts = addr.address.split('.');
-            parts[3] = '255'; // Replace the last octet with 255
-            return parts.join('.');
-          }
-        }
+      RawDatagramSocket socket =
+          await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      InternetAddress? address = socket.address;
+
+      if (address.type == InternetAddressType.IPv4 && !address.isLoopback) {
+        List<String> parts = address.address.split('.');
+        parts[3] = '255'; // Replace the last octet with 255
+        return parts.join('.');
       }
     } catch (e) {
       print("Error getting broadcast address: $e");
