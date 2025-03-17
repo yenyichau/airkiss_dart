@@ -242,6 +242,7 @@ class AirkissSender {
 
 class AirkissConfig {
   AirkissOption option;
+  AirkissSender? _sender; // Store sender instance
 
   AirkissConfig({required this.option}) {
     this.option = AirkissOption();
@@ -251,7 +252,7 @@ class AirkissConfig {
     var strEncoder = Utf8Encoder();
     List<int> ssidbts = strEncoder.convert(ssid);
     List<int> pwdbts = strEncoder.convert(pwd);
-    return this.configWithBytes(ssidbts, pwdbts);
+    return configWithBytes(ssidbts, pwdbts);
   }
 
   Future<AirkissResult?> configWithBytes(
@@ -259,21 +260,26 @@ class AirkissConfig {
     Completer<AirkissResult?> completer = Completer();
     var bytes = AirkissEncoder()
         .encodeWithBytes(ssidbts, pwdbts, random: option.random);
-    var sender = AirkissSender(this.option);
 
-    bool isCompleted = false; // Add this flag
+    _sender = AirkissSender(this.option); // Store sender instance
 
-    sender.onFinished((res) {
+    bool isCompleted = false;
+
+    _sender!.onFinished((res) {
       if (!isCompleted) {
-        // Ensure completer is not completed twice
         isCompleted = true;
-        sender.stop();
+        _sender!.stop();
         completer.complete(res);
       }
     });
 
-    sender.send(bytes);
+    _sender!.send(bytes);
 
     return completer.future;
+  }
+
+  /// Cancels the Airkiss process
+  void cancel() {
+    _sender?.cancel();
   }
 }
