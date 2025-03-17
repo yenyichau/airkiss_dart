@@ -148,16 +148,16 @@ class AirkissSender {
     this.cbk = cbk;
   }
 
-  Future<String?> _getBroadcastAddress() async {
+Future<String?> _getBroadcastAddress() async {
     try {
-      RawDatagramSocket socket =
-          await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-      InternetAddress? address = socket.address;
-
-      if (address.type == InternetAddressType.IPv4 && !address.isLoopback) {
-        List<String> parts = address.address.split('.');
-        parts[3] = '255'; // Replace the last octet with 255
-        return parts.join('.');
+      for (var interface in await NetworkInterface.list()) {
+        for (var addr in interface.addresses) {
+          if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
+            List<String> parts = addr.address.split('.');
+            parts[3] = '255'; // Replace the last octet with 255
+            return parts.join('.');
+          }
+        }
       }
     } catch (e) {
       print("Error getting broadcast address: $e");
@@ -168,11 +168,15 @@ class AirkissSender {
   void send(List<List<int>> bytesArray) async {
     assert(cbk != null);
 
-    String? broadcastIp = await _getBroadcastAddress();
+    // String? broadcastIp = await _getBroadcastAddress();
+    String? broadcastIp = "192.168.5.255";
+    
     if (broadcastIp == null) {
       print("Failed to determine broadcast address.");
       return;
     }
+
+    print("broadcastIp: $broadcastIp");
 
     InternetAddress bcAddr = InternetAddress(broadcastIp);
 
